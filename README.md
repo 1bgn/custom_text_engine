@@ -44,37 +44,37 @@ import 'package:flutter/material.dart';
 import 'package:custom_text_engine/custom_text_engine.dart';
 
 class DemoPage extends StatelessWidget {
-const DemoPage({super.key});
+  const DemoPage({super.key});
 
-@override
-Widget build(BuildContext context) {
-final paragraphs = <ParagraphBlock>[
-ParagraphBlock(
-inlineElements: [
-TextInlineElement(
-text: 'Hello custom text engine! ',
-style: const TextStyle(fontSize: 16),
-),
-TextInlineElement(
-text: 'Justify + hyphenation demo.',
-style: const TextStyle(fontSize: 16),
-),
-],
-textAlign: TextAlign.justify,
-),
-];
+  @override
+  Widget build(BuildContext context) {
+    final paragraphs = <ParagraphBlock>[
+      ParagraphBlock(
+        inlineElements: [
+          TextInlineElement(
+            text: 'Hello custom text engine! ',
+            style: const TextStyle(fontSize: 16),
+          ),
+          TextInlineElement(
+            text: 'Justify + hyphenation demo.',
+            style: const TextStyle(fontSize: 16),
+          ),
+        ],
+        textAlign: TextAlign.justify,
+      ),
+    ];
 
-return Scaffold(
-appBar: AppBar(title: const Text('custom_text_engine')),
-body: Padding(
-padding: const EdgeInsets.all(16),
-child: AdvancedText(
-paragraphs: paragraphs,
-debugPaint: false,
-),
-),
-);
-}
+    return Scaffold(
+      appBar: AppBar(title: const Text('custom_text_engine')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: AdvancedText(
+          paragraphs: paragraphs,
+          debugPaint: false,
+        ),
+      ),
+    );
+  }
 }
 ```
 
@@ -82,12 +82,13 @@ debugPaint: false,
 
 Use `AdvancedLayoutEngine` when you want custom rendering, hit-testing, selection, annotations, etc.
 
-```import 'package:custom_text_engine/custom_text_engine.dart';
+```
+import 'package:custom_text_engine/custom_text_engine.dart';
 
 final engine = AdvancedLayoutEngine(
-paragraphs: paragraphs,
-globalMaxWidth: 420,
-globalTextAlign: TextAlign.justify,
+  paragraphs: paragraphs,
+  globalMaxWidth: 420,
+  globalTextAlign: TextAlign.justify,
 );
 
 final layout = engine.layoutAllParagraphs();
@@ -97,8 +98,11 @@ final layout = engine.layoutAllParagraphs();
 ## Example app
 
 A runnable Flutter example app is included in `example/`.
-![Justify demo](assets/screenshots/demo_1.png)
-![Justify demo](assets/screenshots/demo_2.png)
+
+| Justify | Hyphenation |
+|:--:|:--:|
+| ![Justify demo](https://raw.githubusercontent.com/1bgn/custom_text_engine/main/assets/screenshots/demo_1.png) | ![Hyphenation demo](https://raw.githubusercontent.com/1bgn/custom_text_engine/main/assets/screenshots/demo_2.png) |
+
 cd example
 flutter run
 

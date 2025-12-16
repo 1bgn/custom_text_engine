@@ -1,4 +1,4 @@
-## 0.1.4
+## 0.1.5
 
 - Initial public release.
 - Custom paragraph layout with line breaking.
