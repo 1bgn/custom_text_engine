@@ -15,3 +15,8 @@ dependencies:
 dev_dependencies:
   build_runner: ^2.10.4
   freezed: ^3.2.3
+screenshots:
+  - description: "Justify demo"
+    path: assets/screenshots/demo_1.png
+  - description: "Hyphenation demo"
+    path: assets/screenshots/demo_2.png
