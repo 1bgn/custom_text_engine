@@ -78,12 +78,9 @@ class AdvancedLayoutEngine {
     for (int index = 0; index < paragraphs.length; index++) {
       final paragraph = paragraphs[index];
 
-      final double padT = paragraph.paddingTop is num
-          ? paragraph.paddingTop as double
-          : (paragraph.paddingTop ?? 0.0);
-      final double padB = paragraph.paddingBottom is num
-          ? paragraph.paddingBottom as double
-          : (paragraph.paddingBottom ?? 0.0);
+      final double padT = paragraph.paddingTop;
+
+      final double padB = paragraph.paddingBottom;
 
       // Случайный перенос «направо» как был
       if (paragraph.textAlign == ui.TextAlign.right && allLines.isNotEmpty) {
