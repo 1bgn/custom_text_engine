@@ -38,7 +38,7 @@ flutter pub get
 ## Quick start (widget)
 
 If you just want to render text with this engine, use `AdvancedText`.
-
+```
 import 'package:flutter/material.dart';
 import 'package:custom_text_engine/custom_text_engine.dart';
 
@@ -75,14 +75,13 @@ debugPaint: false,
 );
 }
 }
-
+```
 
 ## Quick start (engine)
 
 Use `AdvancedLayoutEngine` when you want custom rendering, hit-testing, selection, annotations, etc.
 
-import 'package:flutter/material.dart';
-import 'package:custom_text_engine/custom_text_engine.dart';
+```import 'package:custom_text_engine/custom_text_engine.dart';
 
 final engine = AdvancedLayoutEngine(
 paragraphs: paragraphs,
@@ -92,7 +91,7 @@ globalTextAlign: TextAlign.justify,
 
 final layout = engine.layoutAllParagraphs();
 
-
+```
 ## Example app
 
 A runnable Flutter example app is included in `example/`.
@@ -109,6 +108,8 @@ Use only:
 
 import 'package:custom_text_engine/custom_text_engine.dart';
 
+
+This keeps implementation private and allows internal refactors without breaking users. [web:69]
 
 ## Contributing
 
