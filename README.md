@@ -61,7 +61,7 @@ text
 ## Generated code (freezed)
 
 This package uses `freezed` for model code generation.
-Consumers of the published package do **not** need to run `build_runner` — generated files must be included in the published package. [web:383]
+Consumers of the published package do **not** need to run `build_runner` — generated files must be included in the published package. 
 
 For contributors (when changing annotated models):
 
@@ -78,7 +78,7 @@ import 'package:custom_text_engine/custom_text_engine.dart';
 
 text
 
-This keeps implementation private and allows internal refactors without breaking users. [web:69]
+This keeps implementation private and allows internal refactors without breaking users. 
 
 ## Contributing
 
@@ -93,7 +93,6 @@ Recommended release check before publishing:
 dart pub publish --dry-run
 
 text
-[web:276]
 
 ## Author
 
