@@ -1,6 +1,6 @@
 name: custom_text_engine
 description: Custom text engine with hyphenation for Flutter (custom layout, justify, inline elements).
-version: 0.1.1
+version: 0.1.2
 homepage: https://github.com/1bgn/custom_text_engine
 repository: https://github.com/1bgn/custom_text_engine
 issue_tracker: https://github.com/1bgn/custom_text_engine/issues
