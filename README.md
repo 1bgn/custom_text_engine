@@ -54,14 +54,6 @@ cd example
 flutter run
 
 
-## Generated code (freezed)
-
-
-For contributors (when changing annotated models):
-
-dart run build_runner build --delete-conflicting-outputs
-
-
 ## Public API rules
 
 Do not import files from `lib/src/**`.
