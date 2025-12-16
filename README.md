@@ -1,6 +1,7 @@
 # custom_text_engine
 
-A custom text layout engine for Flutter with paragraph-level layout, inline elements, manual justify, and hyphenation-oriented line breaking.
+A custom text layout engine for Flutter with paragraph-level layout, inline elements, manual
+justify, and hyphenation-oriented line breaking.
 
 > Status: active development. Public API may change until `0.x` stabilizes.
 
@@ -12,7 +13,8 @@ This package can be used in two ways:
    Quickly render your `ParagraphBlock`s using `CustomPaint`.
 
 2) **Low-level engine API**: `AdvancedLayoutEngine`  
-   Build a `CustomTextLayout` (list of `LineLayout`s) and paint/measure/interact with it however you want.
+   Build a `CustomTextLayout` (list of `LineLayout`s) and paint/measure/interact with it however you
+   want.
 
 ## Features
 
@@ -29,15 +31,14 @@ Add dependency:
 dependencies:
 custom_text_engine: ^0.1.0
 
-
 Then:
 
 flutter pub get
 
-
 ## Quick start (widget)
 
 If you just want to render text with this engine, use `AdvancedText`.
+
 ```
 import 'package:flutter/material.dart';
 import 'package:custom_text_engine/custom_text_engine.dart';
@@ -92,13 +93,13 @@ globalTextAlign: TextAlign.justify,
 final layout = engine.layoutAllParagraphs();
 
 ```
+
 ## Example app
 
 A runnable Flutter example app is included in `example/`.
 
 cd example
 flutter run
-
 
 ## Public API
 
@@ -107,7 +108,6 @@ Do not import files from `lib/src/**`.
 Use only:
 
 import 'package:custom_text_engine/custom_text_engine.dart';
-
 
 This keeps implementation private and allows internal refactors without breaking users. [web:69]
 
