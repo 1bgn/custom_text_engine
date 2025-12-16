@@ -97,7 +97,8 @@ final layout = engine.layoutAllParagraphs();
 ## Example app
 
 A runnable Flutter example app is included in `example/`.
-
+![Justify demo](assets/screenshots/demo_1.png)
+![Justify demo](assets/screenshots/demo_2.png)
 cd example
 flutter run
 
