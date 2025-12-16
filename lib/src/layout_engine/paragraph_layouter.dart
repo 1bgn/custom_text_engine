@@ -59,7 +59,6 @@ class ParagraphLayouter {
     double maxDescent = 0.0;
     bool isFirstLine = true;
     int runningOffset = startOffset;
-    int currentSpacesCount = 0;
 
     final ui.TextAlign paraAlign = paragraph.textAlign ?? globalTextAlign;
     final ui.TextDirection textDir = paragraph.textDirection;
@@ -77,7 +76,6 @@ class ParagraphLayouter {
       maxDescent = math.max(maxDescent, e.height - e.baseline);
 
       if (e is TextInlineElement) {
-        currentSpacesCount += tokenizer.countAsciiSpaces(e.text);
         runningOffset += e.text.length;
       }
     }
@@ -215,7 +213,6 @@ class ParagraphLayouter {
       currentX = 0.0;
       maxAscent = 0.0;
       maxDescent = 0.0;
-      currentSpacesCount = 0;
       isFirstLine = false;
     }
 
