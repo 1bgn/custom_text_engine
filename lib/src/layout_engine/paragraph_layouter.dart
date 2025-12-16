@@ -42,12 +42,8 @@ class ParagraphLayouter {
         required int startOffset,
       })
   {
-    final double padL = paragraph.paddingLeft is num
-        ? paragraph.paddingLeft as double
-        : (paragraph.paddingLeft ?? 0.0);
-    final double padR = paragraph.paddingRight is num
-        ? paragraph.paddingRight as double
-        : (paragraph.paddingRight ?? 0.0);
+    final double padL = paragraph.paddingLeft ;
+    final double padR = paragraph.paddingRight ;
 
     final splitted = tokenizer.splitTokens(paragraph.inlineElements);
     final result = <LineLayout>[];
