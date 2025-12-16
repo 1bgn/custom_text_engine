@@ -50,8 +50,14 @@ Widget build(BuildContext context) {
 final paragraphs = <ParagraphBlock>[
 ParagraphBlock(
 inlineElements: [
-TextInlineElement(text: 'Hello custom text engine! ', style: const TextStyle(fontSize: 16)),
-TextInlineElement(text: 'Justify + hyphenation demo.', style: const TextStyle(fontSize: 16)),
+TextInlineElement(
+text: 'Hello custom text engine! ',
+style: const TextStyle(fontSize: 16),
+),
+TextInlineElement(
+text: 'Justify + hyphenation demo.',
+style: const TextStyle(fontSize: 16),
+),
 ],
 textAlign: TextAlign.justify,
 ),
@@ -86,9 +92,6 @@ globalTextAlign: TextAlign.justify,
 
 final layout = engine.layoutAllParagraphs();
 
-// layout.lines -> List<LineLayout>
-// each LineLayout may contain a built dart:ui Paragraph ready to be drawn.
-
 
 ## Example app
 
@@ -105,10 +108,6 @@ Do not import files from `lib/src/**`.
 Use only:
 
 import 'package:custom_text_engine/custom_text_engine.dart';
-
-
-This keeps implementation private and allows internal refactors without breaking users. [web:69]
-
 
 
 ## Contributing
