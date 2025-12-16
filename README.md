@@ -24,13 +24,11 @@ Add dependency:
 dependencies:
 custom_text_engine: ^1.0.0
 
-text
 
 Then:
 
 flutter pub get
 
-text
 
 ## Quick start (engine)
 
@@ -46,7 +44,6 @@ final layout = engine.layoutAllParagraphs();
 
 // layout.lines -> List<LineLayout>, each may contain a built Paragraph.
 
-text
 
 ## Demo widget
 
@@ -56,18 +53,14 @@ Run:
 cd example
 flutter run
 
-text
 
 ## Generated code (freezed)
 
-This package uses `freezed` for model code generation.
-Consumers of the published package do **not** need to run `build_runner` — generated files must be included in the published package. 
 
 For contributors (when changing annotated models):
 
 dart run build_runner build --delete-conflicting-outputs
 
-text
 
 ## Public API rules
 
@@ -76,7 +69,6 @@ Only import:
 
 import 'package:custom_text_engine/custom_text_engine.dart';
 
-text
 
 This keeps implementation private and allows internal refactors without breaking users. 
 
@@ -91,8 +83,6 @@ Apache-2.0 (see `LICENSE`).
 Recommended release check before publishing:
 
 dart pub publish --dry-run
-
-text
 
 ## Author
 
