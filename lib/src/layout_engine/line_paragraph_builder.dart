@@ -70,9 +70,11 @@ class LineParagraphBuilder {
     final double layoutWidth = canJustify ? effectiveWidth : math.max(1.0, line.width);
     para.layout(ui.ParagraphConstraints(width: layoutWidth));
 
-    // Selection-rects: сохраняем в первый TextInlineElement (как было).
+    // Selection-rects: сохраняем в КАЖДЫЙ TextInlineElement строки, не только
+    // в первый — иначе в многостилевых строках (например, обычный текст +
+    // цитата/выделение в одном абзаце) rects будут отсутствовать у всех
+    // прогонов кроме первого.
     int cursor = 0;
-    int firstTextIndex = -1;
 
     for (int i = 0; i < line.elements.length; i++) {
       final el = line.elements[i];
@@ -94,10 +96,7 @@ class LineParagraphBuilder {
       ))
           .toList(growable: false);
 
-      if (firstTextIndex < 0) {
-        firstTextIndex = i;
-        el.adoptPaintParagraph(para, rects);
-      }
+      el.adoptPaintParagraph(para, rects);
     }
 
     return para;

@@ -42,8 +42,12 @@ class TextInlineElement extends InlineElement implements HasSourceTag {
 
   void adoptPaintParagraph(ui.Paragraph paragraph, List<ui.Rect> rects) {
     _paintParagraph = paragraph;
-    // rects можно хранить отдельно, но достаточно и _selectionRects
-    // если они используются для интерактивности/selection.
+    // Раньше rects здесь отбрасывались и getInteractiveRects() продолжал
+    // отдавать rects, посчитанные на изолированном intrinsic-параграфе
+    // (из performLayout), не совпадающие с фактической позицией текста
+    // в отрисованной (перенесённой/justify) строке. Теперь синхронизируем.
+    _selectionRects = rects;
+    selectionRects = rects;
   }
 
   @override

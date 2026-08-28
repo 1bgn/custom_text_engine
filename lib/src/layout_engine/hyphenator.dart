@@ -20,17 +20,19 @@ class Hyphenator {
     rules.add(HyphenPair("sggs", 2));
   }
 
-  /// Основной метод для вставки мягких переносов (Unicode \u00AD) в текст
+  /// Основной метод для вставки мягких переносов (Unicode ­) в текст
   /// на основании правил в [rules].
   ///
-  /// Возвращает строку с вставленными \u00AD, которые Flutter
+  /// Возвращает строку с вставленными ­, которые Flutter
   /// интерпретирует как "дефис при переносе".
-  String hyphenate(String text, {String hyphenateSymbol = "\u00AD"}) {
-    // 1) Построим промежуточную строку, заменяя символы:
-    //    x, g, s – как в вашем коде
+  String hyphenate(String text, {String hyphenateSymbol = "­"}) {
+    final int n = text.length;
+
+    // 1) Построим маску x/g/s по нижнему регистру, чтобы заглавные буквы
+    //    попадали в те же классы, что и строчные (индексы/длина не меняются).
     final sb = StringBuffer();
-    for (int i = 0; i < text.length; i++) {
-      String c = text[i];
+    for (int i = 0; i < n; i++) {
+      final String c = text[i].toLowerCase();
       if (x.contains(c)) {
         sb.write("x");
       } else if (g.contains(c)) {
@@ -38,52 +40,44 @@ class Hyphenator {
       } else if (s.contains(c)) {
         sb.write("s");
       } else {
-        sb.write(c);
+        sb.write(text[i]);
       }
     }
-    String hyphenatedText = sb.toString();
+    final String mask = sb.toString();
 
-    // Допустим, splitter = "┼" – маркер, который мы временно вставляем
-    const splitter = "┼";
-
-    // 2) Применяем правила, вставляя splitter
-    for (int i = 0; i < rules.length; i++) {
-      final hp = rules[i];
-      // Ищем все вхождения шаблона
-      int index = hyphenatedText.indexOf(hp.pattern);
+    // 2) Ищем точки переноса по неизменяемой маске и копим их как индексы
+    //    в исходном тексте. Раньше правила искали совпадения в строке,
+    //    которую уже мутировали предыдущие правила — из-за этого повторное
+    //    правило с тем же паттерном (например, две записи "gsssg" с разной
+    //    позицией переноса) могло не найти совпадение, потому что символ-
+    //    разделитель от первого правила разрывал непрерывность паттерна.
+    final breakPoints = <int>{};
+    for (final hp in rules) {
+      int index = mask.indexOf(hp.pattern);
       while (index != -1) {
-        int actualIndex = index + hp.position;
-        // Вставляем splitter в промежуточную строку "hyphenatedText"
-        hyphenatedText = hyphenatedText.substring(0, actualIndex)
-            + splitter
-            + hyphenatedText.substring(actualIndex);
-
-        // Параллельно вставляем splitter и в исходный text
-        text = text.substring(0, actualIndex)
-            + splitter
-            + text.substring(actualIndex);
-
-        // Ищем следующее вхождение
-        index = hyphenatedText.indexOf(hp.pattern, index + splitter.length + 1);
+        final actualIndex = index + hp.position;
+        if (actualIndex > 0 && actualIndex < n) {
+          breakPoints.add(actualIndex);
+        }
+        index = mask.indexOf(hp.pattern, index + 1);
       }
     }
 
-    // 3) Теперь text содержит splitter в местах переноса
-    // Разобьём его и в каждом фрагменте проставим hyphenateSymbol (\u00AD)
-    final parts = text.split(splitter);
+    if (breakPoints.isEmpty) return text;
+
+    // 3) Вставляем ­ один раз, за один проход по исходному тексту.
+    final sortedBreaks = breakPoints.toList()..sort();
     final result = StringBuffer();
-    for (int i = 0; i < parts.length; i++) {
-      final value = parts[i];
-      result.write(hyphenateSymbol + value);
+    int cursor = 0;
+    for (final bp in sortedBreaks) {
+      result
+        ..write(text.substring(cursor, bp))
+        ..write(hyphenateSymbol);
+      cursor = bp;
     }
+    result.write(text.substring(cursor));
 
-    // Удалим первый \u00AD, т.к. в начале строки он не нужен
-    String res = result.toString();
-    if (res.startsWith(hyphenateSymbol)) {
-      res = res.substring(hyphenateSymbol.length);
-    }
-
-    return res;
+    return result.toString();
   }
 }
 

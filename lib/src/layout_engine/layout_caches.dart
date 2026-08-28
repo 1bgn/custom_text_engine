@@ -20,7 +20,7 @@ class LayoutCaches {
 
   LayoutCaches({
     required this.intrinsicMeasureWidth,
-    int textCacheSize = 5,
+    int textCacheSize = 2000,
     int metricsCacheSize = 10000,
   })  : textCache =
   LruMap<MetricsKey, TextLayoutEntry>(maximumSize: textCacheSize),
