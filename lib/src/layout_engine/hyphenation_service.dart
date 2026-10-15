@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:quiver/collection.dart' show LruMap;
@@ -84,17 +85,31 @@ class HyphenationService {
     String leftFor(int cut) =>
         (cut < s.length && _isLetterAt(s, cut - 1) && _isLetterAt(s, cut)) ? '${s.substring(0, cut)}-' : s.substring(0, cut);
 
+    // Поиск наибольшего среза, влезающего в maxWidth. Как и бинарный, держит границы [lo, hi],
+    // но пробует не середину, а оценку по уже измеренной ширине (ширина растёт почти линейно с
+    // длиной): обычно хватает 2–4 замеров коротких префиксов вместо ~log2(длина) замеров длинных.
+    // Каждый второй шаг — честная середина, чтобы худший случай остался логарифмическим.
     int lo = 1, hi = s.length, best = 0;
+    var probe = ((maxWidth / math.max(1.0, (e.style.fontSize ?? 16.0) * 0.6)).floor()).clamp(lo, hi);
+    var step = 0;
     while (lo <= hi) {
-      final mid = (lo + hi) >> 1;
-      final test = _like(e, leftFor(mid));
+      final test = _like(e, leftFor(probe));
       caches.performLayoutWithCache(test, maxWidth, dir);
+      final w = test.width;
 
-      if (test.width <= maxWidth) {
-        best = mid;
-        lo = mid + 1;
+      if (w <= maxWidth) {
+        best = probe;
+        lo = probe + 1;
       } else {
-        hi = mid - 1;
+        hi = probe - 1;
+      }
+      if (lo > hi) break;
+
+      step++;
+      if (step.isOdd && w > 0) {
+        probe = (probe * maxWidth / w).round().clamp(lo, hi);
+      } else {
+        probe = (lo + hi) >> 1;
       }
     }
 
