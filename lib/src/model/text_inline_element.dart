@@ -15,7 +15,15 @@ class TextInlineElement extends InlineElement implements HasSourceTag {
   @override
   int endOffset = 0;
 
-  TextInlineElement({required this.text, required this.style});
+  TextInlineElement({required this.text, required this.style, this.sourceLength});
+
+  /// Сколько символов ИСХОДНОГО текста покрывает этот элемент. null — столько, сколько в [text].
+  /// Отличается у кусков слова после переноса: добавленный дефис и вставленные
+  /// переносчиком мягкие переносы (U+00AD) в исходном тексте не существуют, и если считать их,
+  /// смещения строк «плывут» по-разному на разной ширине (якорь позиции перестаёт быть стабильным).
+  final int? sourceLength;
+
+  int get consumedLength => sourceLength ?? text.length;
 
   ui.Paragraph? _paragraphCache;
   ui.Paragraph? _paintParagraph;

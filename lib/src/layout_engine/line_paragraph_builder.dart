@@ -61,7 +61,16 @@ class LineParagraphBuilder {
           baselineOffset: line.maxAscent,
         );
       } else {
-        // TODO: addPlaceholder для других inline (если нужно).
+        // Картинки и прочие нетекстовые элементы: резервируем в строке место под них, иначе текст
+        // после них «налезает» (placeholder положен на базовую линию, el.baseline — расстояние
+        // от верха элемента до его базовой линии; сдвиг sup/sub — это и есть el.baseline).
+        builder.addPlaceholder(
+          el.width,
+          el.height,
+          ui.PlaceholderAlignment.baseline,
+          baseline: ui.TextBaseline.alphabetic,
+          baselineOffset: el.baseline,
+        );
       }
     }
 

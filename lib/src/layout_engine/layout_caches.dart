@@ -18,11 +18,24 @@ class LayoutCaches {
   /// Other inline elements -> metrics only.
   final LruMap<MetricsKey, TextMetrics> metricsCache;
 
+  /// true (по умолчанию) — прежнее поведение: у каждого текстового элемента остаётся
+  /// ui.Paragraph и selectionRects (нужны для выделения/интерактивности).
+  /// false — обычный текст измеряется «только числами»: параграф создаётся на время
+  /// измерения и сразу освобождается, а размеры берутся из общего [textMetrics],
+  /// если токен уже измерялся. Элементы [ClickInlineElement] (сноски) всегда идут прежним путём.
+  final bool retainTextParagraphs;
+
+  /// Кеш размеров для режима `retainTextParagraphs: false` (можно делить между движками).
+  final TextMetricsCache textMetrics;
+
   LayoutCaches({
     required this.intrinsicMeasureWidth,
     int textCacheSize = 2000,
     int metricsCacheSize = 10000,
-  })  : textCache =
+    this.retainTextParagraphs = true,
+    TextMetricsCache? textMetrics,
+  })  : textMetrics = textMetrics ?? TextMetricsCache(),
+        textCache =
   LruMap<MetricsKey, TextLayoutEntry>(maximumSize: textCacheSize),
         metricsCache =
         LruMap<MetricsKey, TextMetrics>(maximumSize: metricsCacheSize);
@@ -58,9 +71,17 @@ class LayoutCaches {
     );
   }
 
+  // toString() у TextStyle длинный и вычисляется на каждый токен, а стиль у токенов одного
+  // узла — один и тот же объект. Хеш считаем один раз на объект стиля.
+  static final Expando<int> _styleHashes = Expando<int>('styleHash');
+
   int effectiveStyleHash(dynamic style) {
-    final base = style?.hashCode ?? 0;
-    return Object.hash(base, style?.toString());
+    if (style == null) return Object.hash(0, null);
+    final cached = style is Object ? _styleHashes[style] : null;
+    if (cached != null) return cached;
+    final hash = Object.hash(style.hashCode, style.toString());
+    if (style is Object) _styleHashes[style] = hash;
+    return hash;
   }
 
   void performLayoutWithCache(
@@ -69,6 +90,11 @@ class LayoutCaches {
       ui.TextDirection dir,
       ) {
     if (e is TextInlineElement) {
+      if (!retainTextParagraphs && e is! ClickInlineElement) {
+        _measureTextMetricsOnly(e, dir);
+        return;
+      }
+
       final key = makeKey(e, dir, 0.0);
 
       final hit = textCache[key];
@@ -81,28 +107,7 @@ class LayoutCaches {
         return;
       }
 
-      final builder = ui.ParagraphBuilder(
-        ui.ParagraphStyle(
-          fontFamily: e.style.fontFamily,
-          fontSize: e.style.fontSize,
-          fontWeight: e.style.fontWeight,
-          fontStyle: e.style.fontStyle,
-        ),
-      )
-        ..pushStyle(ui.TextStyle(
-          color: e.style.color,
-          fontSize: e.style.fontSize,
-          fontFamily: e.style.fontFamily,
-          fontWeight: e.style.fontWeight,
-          fontStyle: e.style.fontStyle,
-          letterSpacing: e.style.letterSpacing,
-          wordSpacing: e.style.wordSpacing,
-          height: e.style.height,
-        ))
-        ..addText(e.text);
-
-      final paragraph = builder.build()
-        ..layout(ui.ParagraphConstraints(width: intrinsicMeasureWidth));
+      final paragraph = _buildIntrinsicParagraph(e);
 
       final w = paragraph.maxIntrinsicWidth;
       final h = paragraph.height;
@@ -140,7 +145,13 @@ class LayoutCaches {
       return;
     }
 
-    // Non-text inline elements: cache metrics by constraints.
+    // Нетекстовые элементы (картинки, sup/sub и т. п.): размер зависит от самого элемента, а ключ
+    // кеша был «тип + ширина» — разные картинки получали размеры друг друга. Кешируем только отступы.
+    if (e is! IndentInlineElement) {
+      e.performLayout(availableWidth);
+      return;
+    }
+
     final key = makeKey(e, dir, availableWidth);
 
     final hit = metricsCache[key];
@@ -154,5 +165,58 @@ class LayoutCaches {
 
     e.performLayout(availableWidth);
     metricsCache[key] = TextMetrics(e.width, e.height, e.baseline);
+  }
+  /// Параграф одного токена в «бесконечной» ширине (интринсик-измерение).
+  ui.Paragraph _buildIntrinsicParagraph(TextInlineElement e) {
+    final builder = ui.ParagraphBuilder(
+      ui.ParagraphStyle(
+        fontFamily: e.style.fontFamily,
+        fontSize: e.style.fontSize,
+        fontWeight: e.style.fontWeight,
+        fontStyle: e.style.fontStyle,
+      ),
+    )
+      ..pushStyle(ui.TextStyle(
+        color: e.style.color,
+        fontSize: e.style.fontSize,
+        fontFamily: e.style.fontFamily,
+        fontWeight: e.style.fontWeight,
+        fontStyle: e.style.fontStyle,
+        letterSpacing: e.style.letterSpacing,
+        wordSpacing: e.style.wordSpacing,
+        height: e.style.height,
+      ))
+      ..addText(e.text);
+
+    return builder.build()
+      ..layout(ui.ParagraphConstraints(width: intrinsicMeasureWidth));
+  }
+
+  /// Размеры токена только числами: при попадании в общий кеш параграф не создаётся,
+  /// при промахе — создаётся, измеряется и сразу освобождается (элемент его не удерживает).
+  void _measureTextMetricsOnly(TextInlineElement e, ui.TextDirection dir) {
+    final key = makeKey(e, dir, 0.0);
+
+    final hit = textMetrics[key];
+    if (hit != null) {
+      e
+        ..width = hit.width
+        ..height = hit.height
+        ..baseline = hit.baseline;
+      return;
+    }
+
+    final paragraph = _buildIntrinsicParagraph(e);
+    final w = paragraph.maxIntrinsicWidth;
+    final h = paragraph.height;
+    final lines = paragraph.computeLineMetrics();
+    final base = lines.isNotEmpty ? lines.first.ascent : h;
+    paragraph.dispose();
+
+    textMetrics[key] = TextMetrics(w, h, base);
+    e
+      ..width = w
+      ..height = h
+      ..baseline = base;
   }
 }

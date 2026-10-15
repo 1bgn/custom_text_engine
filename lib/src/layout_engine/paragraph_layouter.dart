@@ -37,9 +37,14 @@ class ParagraphLayouter {
     required this.computeBaseLineHeight,
   });
 
+  /// [floatLeft]/[floatRight] — ширина, занятая плавающей картинкой слева/справа, на строках,
+  /// верх которых выше [floatHeight] (обтекание: ниже картинки строки снова на всю ширину).
   List<LineLayout> layoutSingleParagraph(
       ParagraphBlock paragraph, {
         required int startOffset,
+        double floatLeft = 0.0,
+        double floatRight = 0.0,
+        double floatHeight = 0.0,
       })
   {
     final double padL = paragraph.paddingLeft ;
@@ -66,6 +71,13 @@ class ParagraphLayouter {
 
     final double baseLineHeight = computeBaseLineHeight(paragraph);
 
+    // Обтекание: верх строки, которую сейчас собираем (сумма высот уже готовых строк)
+    double lineTop = 0.0;
+    bool floatActive() => floatHeight > 0 && lineTop < floatHeight - 1e-3;
+    double insetLeft() => floatActive() ? floatLeft : 0.0;
+    double lineWidth() =>
+        math.max(0.0, effectiveWidth - (floatActive() ? floatLeft + floatRight : 0.0));
+
     void addElementToLine(InlineElement e) {
       if (currentLine.elements.isEmpty) {
         currentLine.startTextOffset = runningOffset;
@@ -76,7 +88,9 @@ class ParagraphLayouter {
       maxDescent = math.max(maxDescent, e.height - e.baseline);
 
       if (e is TextInlineElement) {
-        runningOffset += e.text.length;
+        // считаем символы исходного текста: добавленные дефисы и вставленные мягкие переносы
+        // в нём не существуют (см. TextInlineElement.sourceLength)
+        runningOffset += e.consumedLength;
       }
     }
 
@@ -129,10 +143,9 @@ class ParagraphLayouter {
         // хвоста нет
         if (cut == t.length) break;
 
-        final removedLen = t.length - cut;
-
-        // откатываем global offset за отрезанные символы
-        runningOffset -= removedLen;
+        // Пробелы срезаны только с отображаемой строки; в исходном тексте они есть, поэтому
+        // смещение (runningOffset) НЕ откатываем: иначе каждая строка, оканчивающаяся
+        // пробелом, сдвигала бы все следующие смещения на 1 (и по-разному на разной ширине).
 
         // убираем исходный элемент
         currentLine.elements.removeLast();
@@ -150,7 +163,6 @@ class ParagraphLayouter {
       while (currentLine.elements.isNotEmpty) {
         final last = currentLine.elements.last;
         if (last is TextInlineElement && tokenizer.isAllSpaceOrTab(last.text)) {
-          runningOffset -= last.text.length;
           currentLine.elements.removeLast();
           continue;
         }
@@ -203,10 +215,14 @@ class ParagraphLayouter {
       }
 
       currentLine.containerOffsetFactor = effectiveWidth / globalMaxWidth;
+      currentLine.availableWidth = lineWidth();
+      currentLine.leftInset = insetLeft();
+      currentLine.containerOffset += currentLine.leftInset;
       currentLine.endsWithHardBreak = hardBreak;
       currentLine.spacesCount = spacesSum;
 
       result.add(currentLine);
+      lineTop += currentLine.height;
 
       // --- 4) reset под следующую строку ---
       currentLine = LineLayout();
@@ -227,51 +243,71 @@ class ParagraphLayouter {
         continue;
       }
 
-      final double availableWidth = math.max(0.0, effectiveWidth - currentX);
+      final double availableWidth = math.max(0.0, lineWidth() - currentX);
       caches.performLayoutWithCache(elem, availableWidth, textDir);
 
-      final bool overflow = currentX + elem.width > effectiveWidth;
-      if (overflow) {
-        if (elem is TextInlineElement) {
-          final hyphSplit = allowSoftHyphens
-              ? hyphenation.trySplitBySoftHyphen(elem, availableWidth, textDir)
-              : null;
+      final bool overflow = currentX + elem.width > lineWidth();
+      if (!overflow) {
+        addElementToLine(elem);
+        continue;
+      }
 
-          if (hyphSplit != null) {
-            final left = hyphSplit.$1;
-            final right = hyphSplit.$2;
-
-            caches.performLayoutWithCache(left, availableWidth, textDir);
-            addElementToLine(left);
-            commitLine();
-
-            caches.performLayoutWithCache(right, effectiveWidth, textDir);
-            addElementToLine(right);
-            continue;
-          }
-
-          if (currentLine.elements.isEmpty) {
-            final forceSplit = hyphenation.forceSplitByWidth(elem, effectiveWidth, textDir);
-            if (forceSplit != null) {
-              final left = forceSplit.$1;
-              final right = forceSplit.$2;
-
-              caches.performLayoutWithCache(left, effectiveWidth, textDir);
-              addElementToLine(left);
-              commitLine();
-
-              caches.performLayoutWithCache(right, effectiveWidth, textDir);
-              addElementToLine(right);
-              continue;
-            }
-          }
-        }
-
+      if (elem is! TextInlineElement) {
         commitLine();
         caches.performLayoutWithCache(elem, effectiveWidth, textDir);
         addElementToLine(elem);
-      } else {
-        addElementToLine(elem);
+        continue;
+      }
+
+      // Слово не влезает в остаток строки. Пока оно (или его остаток) шире свободного места:
+      //   1) переносим по мягкому дефису (правила языка);
+      //   2) иначе, если на строке уже есть текст, начинаем новую строку и повторяем;
+      //   3) иначе режем слово по символам (с дефисом) — так слово никогда не выходит за край,
+      //      даже если оно в разы длиннее строки (составные слова немецкого, URL и т.п.).
+      // Каждый проход съедает хотя бы символ или строку, поэтому цикл конечен.
+      TextInlineElement rest = elem;
+      while (true) {
+        final double avail = math.max(0.0, lineWidth() - currentX);
+        caches.performLayoutWithCache(rest, avail, textDir);
+        if (currentX + rest.width <= lineWidth()) {
+          addElementToLine(rest);
+          break;
+        }
+
+        final hyphSplit = allowSoftHyphens
+            ? hyphenation.trySplitBySoftHyphen(rest, avail, textDir)
+            : null;
+        if (hyphSplit != null) {
+          final left = hyphSplit.$1;
+          caches.performLayoutWithCache(left, avail, textDir);
+          addElementToLine(left);
+          commitLine();
+          rest = hyphSplit.$2;
+          continue;
+        }
+
+        final bool lineHasText = currentLine.elements.any((e) => e is TextInlineElement);
+        if (lineHasText) {
+          commitLine();
+          continue;
+        }
+
+        // Строка пуста (или в ней только красная строка): режем по символам по доступной ширине
+        final forceSplit = hyphenation.forceSplitByWidth(rest, avail, textDir);
+        if (forceSplit == null) {
+          if (currentLine.elements.isNotEmpty) {
+            commitLine(); // место осталось только под отступ — слово начнёт новую строку
+            continue;
+          }
+          // Один символ шире строки: ничего не поделаешь, кладём как есть
+          addElementToLine(rest);
+          break;
+        }
+        final left = forceSplit.$1;
+        caches.performLayoutWithCache(left, avail, textDir);
+        addElementToLine(left);
+        commitLine();
+        rest = forceSplit.$2;
       }
     }
 
@@ -298,7 +334,7 @@ class ParagraphLayouter {
       line.paragraph = paragraphBuilder.buildParagraphForLine(
         line: line,
         pb: paragraph,
-        effectiveWidth: effectiveWidth,
+        effectiveWidth: line.availableWidth ?? effectiveWidth,
         allowJustify: allowJustify,
       );
     }

@@ -25,6 +25,13 @@ class LineLayout {
   double containerOffsetFactor = 1.0;
   int startTextOffset = 0;
 
+  /// Ширина, доступная этой строке (меньше ширины абзаца, если строку сужает плавающая картинка).
+  /// null — вся ширина абзаца.
+  double? availableWidth;
+
+  /// Сдвиг строки вправо от левого края контейнера из-за плавающей слева картинки.
+  double leftInset = 0;
+
   @override
   String toString() {
     return 'LineLayout{paragraph: $paragraph, elements: $elements, width: $width, height: $height, maxAscent: $maxAscent, maxDescent: $maxDescent, isSectionEnd: $isSectionEnd, endsWithHardBreak: $endsWithHardBreak, spacesCount: $spacesCount, textAlign: $textAlign, textDirection: $textDirection, containerOffset: $containerOffset, containerOffsetFactor: $containerOffsetFactor, startTextOffset: $startTextOffset}';

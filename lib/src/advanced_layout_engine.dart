@@ -12,6 +12,7 @@ import 'model/custom_text_layout.dart';
 
 import 'layout_engine/hyphenation_service.dart';
 import 'layout_engine/layout_caches.dart';
+import 'model/metrics_models.dart';
 import 'layout_engine/line_paragraph_builder.dart';
 typedef HyphenateCallback = String Function(String input);
 class AdvancedLayoutEngine {
@@ -22,6 +23,17 @@ class AdvancedLayoutEngine {
   final bool allowSoftHyphens;
   final HyphenateCallback? hyphenateOverride;
   static const double kIntrinsicMeasureWidth = 1e9;
+
+  /// Обтекание плавающей картинкой первого абзаца: ширина слева/справа и высота, на которой
+  /// строки сужены (ниже — снова на всю ширину).
+  final double floatLeft;
+  final double floatRight;
+  final double floatHeight;
+
+  /// false — не удерживать ui.Paragraph у текстовых элементов (см. [LayoutCaches]).
+  /// Экономит нативную память и время на больших текстах; selectionRects у обычного
+  /// текста при этом пусты (у сносок [ClickInlineElement] остаются).
+  final bool retainTextParagraphs;
 
   late final InlineTokenizer _tokenizer;
   late final LayoutCaches _caches;
@@ -35,9 +47,18 @@ class AdvancedLayoutEngine {
     required this.globalTextAlign,
     this.allowSoftHyphens = true,
     this.hyphenateOverride,
+    this.retainTextParagraphs = true,
+    TextMetricsCache? textMetricsCache,
+    this.floatLeft = 0.0,
+    this.floatRight = 0.0,
+    this.floatHeight = 0.0,
   }) {
     _tokenizer = const InlineTokenizer();
-    _caches = LayoutCaches(intrinsicMeasureWidth: kIntrinsicMeasureWidth);
+    _caches = LayoutCaches(
+      intrinsicMeasureWidth: kIntrinsicMeasureWidth,
+      retainTextParagraphs: retainTextParagraphs,
+      textMetrics: textMetricsCache,
+    );
     _hyphenation = HyphenationService(hyphenator: hyphenator, caches: _caches,   hyphenateOverride: hyphenateOverride,);
     _lineParagraphBuilder = LineParagraphBuilder(tokenizer: _tokenizer);
     _paragraphLayouter = ParagraphLayouter(
@@ -106,6 +127,9 @@ class AdvancedLayoutEngine {
       final lines = _paragraphLayouter.layoutSingleParagraph(
         paragraph,
         startOffset: currentGlobalOffset,
+        floatLeft: index == 0 ? floatLeft : 0.0,
+        floatRight: index == 0 ? floatRight : 0.0,
+        floatHeight: index == 0 ? floatHeight : 0.0,
       );
 
       for (int i = 0; i < lines.length; i++) {

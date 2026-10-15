@@ -8,6 +8,7 @@ export 'src/model/paragraph_block.dart' show ParagraphBlock;
 export 'src/model/inline_element.dart' show InlineElement;
 export 'src/model/text_inline_element.dart' show TextInlineElement;
 export 'src/model/line_layout.dart' show LineLayout;
+export 'src/model/metrics_models.dart' show TextMetricsCache;
 export 'src/widget/advanced_text.dart' show AdvancedText;
 export 'src/model/custom_text_layout.dart' show CustomTextLayout;
 

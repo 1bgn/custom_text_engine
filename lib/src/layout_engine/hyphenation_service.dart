@@ -47,16 +47,21 @@ class HyphenationService {
     for (int i = hyphCore.length - 1; i >= 0; i--) {
       if (hyphCore.codeUnitAt(i) == 0x00AD /* SHY */) {
         if (i < hyphCore.length - 1) {
-          final leftStr = hyphCore.substring(0, i) + '-';
-          final rightStr = hyphCore.substring(i + 1) + trailingWs;
+          final leftSrc = hyphCore.substring(0, i);
+          final rightSrc = hyphCore.substring(i + 1);
+          final leftStr = leftSrc + '-';
+          final rightStr = rightSrc + trailingWs;
+          // Длины в исходном тексте: без добавленного '-' и без вставленных мягких переносов
+          final leftLen = leftSrc.length - _shyCount(leftSrc);
+          final rightLen = rightSrc.length - _shyCount(rightSrc) + trailingWs.length;
 
           final test = TextInlineElement(text: leftStr, style: elem.style);
           caches.performLayoutWithCache(test, remainingWidth, dir);
 
           if (test.width <= remainingWidth) {
             return (
-            TextInlineElement(text: leftStr, style: elem.style),
-            TextInlineElement(text: rightStr, style: elem.style),
+            TextInlineElement(text: leftStr, style: elem.style, sourceLength: leftLen),
+            TextInlineElement(text: rightStr, style: elem.style, sourceLength: rightLen),
             );
           }
         }
@@ -74,10 +79,14 @@ class HyphenationService {
     final s = e.text;
     if (s.isEmpty) return null;
 
+    // Разрыв внутри слова между двумя буквами показываем дефисом (как при обычном переносе)
+    String leftFor(int cut) =>
+        (cut < s.length && _isLetterAt(s, cut - 1) && _isLetterAt(s, cut)) ? '${s.substring(0, cut)}-' : s.substring(0, cut);
+
     int lo = 1, hi = s.length, best = 0;
     while (lo <= hi) {
       final mid = (lo + hi) >> 1;
-      final test = TextInlineElement(text: s.substring(0, mid), style: e.style);
+      final test = TextInlineElement(text: leftFor(mid), style: e.style);
       caches.performLayoutWithCache(test, maxWidth, dir);
 
       if (test.width <= maxWidth) {
@@ -90,9 +99,24 @@ class HyphenationService {
 
     if (best == 0) return null;
 
+    // Мягкие переносы внутри остатка слова вставил переносчик — в исходном тексте их нет
+    final leftSrc = s.substring(0, best);
+    final rightSrc = s.substring(best);
     return (
-    TextInlineElement(text: s.substring(0, best), style: e.style),
-    TextInlineElement(text: s.substring(best), style: e.style),
+    TextInlineElement(text: leftFor(best), style: e.style, sourceLength: leftSrc.length - _shyCount(leftSrc)),
+    TextInlineElement(text: rightSrc, style: e.style, sourceLength: rightSrc.length - _shyCount(rightSrc)),
     );
+  }
+
+  static final RegExp _letter = RegExp(r'\p{L}', unicode: true);
+
+  static bool _isLetterAt(String s, int i) => i >= 0 && i < s.length && _letter.hasMatch(s[i]);
+
+  static int _shyCount(String s) {
+    var n = 0;
+    for (var i = 0; i < s.length; i++) {
+      if (s.codeUnitAt(i) == 0x00AD) n++;
+    }
+    return n;
   }
 }
