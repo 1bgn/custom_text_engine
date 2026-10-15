@@ -4,6 +4,7 @@ import 'package:quiver/collection.dart' show LruMap;
 
 import '../model/text_inline_element.dart';
 import 'hyphenator.dart';
+import 'click_inline_element.dart';
 import 'layout_caches.dart';
 typedef HyphenateCallback = String Function(String input);
 class HyphenationService {
@@ -55,13 +56,13 @@ class HyphenationService {
           final leftLen = leftSrc.length - _shyCount(leftSrc);
           final rightLen = rightSrc.length - _shyCount(rightSrc) + trailingWs.length;
 
-          final test = TextInlineElement(text: leftStr, style: elem.style);
+          final test = _like(elem, leftStr);
           caches.performLayoutWithCache(test, remainingWidth, dir);
 
           if (test.width <= remainingWidth) {
             return (
-            TextInlineElement(text: leftStr, style: elem.style, sourceLength: leftLen),
-            TextInlineElement(text: rightStr, style: elem.style, sourceLength: rightLen),
+            _like(elem, leftStr, sourceLength: leftLen),
+            _like(elem, rightStr, sourceLength: rightLen),
             );
           }
         }
@@ -86,7 +87,7 @@ class HyphenationService {
     int lo = 1, hi = s.length, best = 0;
     while (lo <= hi) {
       final mid = (lo + hi) >> 1;
-      final test = TextInlineElement(text: leftFor(mid), style: e.style);
+      final test = _like(e, leftFor(mid));
       caches.performLayoutWithCache(test, maxWidth, dir);
 
       if (test.width <= maxWidth) {
@@ -103,9 +104,17 @@ class HyphenationService {
     final leftSrc = s.substring(0, best);
     final rightSrc = s.substring(best);
     return (
-    TextInlineElement(text: leftFor(best), style: e.style, sourceLength: leftSrc.length - _shyCount(leftSrc)),
-    TextInlineElement(text: rightSrc, style: e.style, sourceLength: rightSrc.length - _shyCount(rightSrc)),
+    _like(e, leftFor(best), sourceLength: leftSrc.length - _shyCount(leftSrc)),
+    _like(e, rightSrc, sourceLength: rightSrc.length - _shyCount(rightSrc)),
     );
+  }
+
+  /// Новый элемент с другим текстом, но тем же типом: куски слова на ссылке остаются ссылкой.
+  static TextInlineElement _like(TextInlineElement src, String text, {int? sourceLength}) {
+    if (src is ClickInlineElement) {
+      return ClickInlineElement(text: text, style: src.style, attrs: src.attrs, sourceLength: sourceLength);
+    }
+    return TextInlineElement(text: text, style: src.style, sourceLength: sourceLength);
   }
 
   static final RegExp _letter = RegExp(r'\p{L}', unicode: true);

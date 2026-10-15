@@ -5,7 +5,7 @@ import '../model/text_inline_element.dart';
 
 class ClickInlineElement extends TextInlineElement{
   ClickInlineElement({required super.text, required super.style,
-    this.attrs = const {},});
+    this.attrs = const {}, super.sourceLength});
   final Map<String, String> attrs;
   @override
   List<Rect> getInteractiveRects(Offset offset) {

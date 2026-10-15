@@ -36,7 +36,11 @@ class LineParagraphBuilder {
         final int spacesHere = tokenizer.countAsciiSpaces(text);
 
         double ws = el.style.wordSpacing ?? 0.0;
-        if (canJustify && spacesHere > 0) {
+        // Выключка: добавка одинакова у всех кусков строки (на слово без пробела wordSpacing не
+        // влияет). Разный wordSpacing у соседних кусков одного начертания разрывал прогон текста,
+        // и у курсива второй глиф слова сдвигался на предыдущий («Путь» → буквы налезали).
+        // Куски с неразрывным пробелом без обычных пробелов не трогаем: они не растягиваются.
+        if (canJustify && (spacesHere > 0 || !text.contains('\u00A0'))) {
           ws += addPerSpace;
         }
 
@@ -87,7 +91,13 @@ class LineParagraphBuilder {
 
     for (int i = 0; i < line.elements.length; i++) {
       final el = line.elements[i];
-      if (el is! TextInlineElement) continue;
+      if (el is! TextInlineElement) {
+        // отступ красной строки и нетекстовые элементы — плейсхолдеры: в тексте параграфа это
+        // один символ (U+FFFC). Без него все диапазоны за ними (и прямоугольники ссылок)
+        // сдвигались на символ влево.
+        cursor += 1;
+        continue;
+      }
 
       final start = cursor;
       final end = cursor += el.text.length;
